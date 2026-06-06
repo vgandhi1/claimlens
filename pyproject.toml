@@ -1,0 +1,18 @@
+[project]
+name = "claimlens"
+version = "0.1.0"
+description = "Warranty-narrative NLP for field quality & reliability RCA"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = ["-q"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]

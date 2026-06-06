@@ -23,7 +23,7 @@ _RANDOM_STATE = 42
 
 
 def build_pipeline() -> Pipeline:
-    """TF-IDF (1–2 grams) → calibrated logistic regression."""
+    """TF-IDF (1–2 grams) → logistic regression."""
     return Pipeline([
         ("tfidf", TfidfVectorizer(
             lowercase=True,

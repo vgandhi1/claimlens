@@ -7,7 +7,7 @@
 *Turn free-text warranty claims and field notes into structured failure trends —
 so the next 5-Why / 8D starts from data, not a spreadsheet search.*
 
-### ▶ [**Live presentation**](https://vgandhi1.github.io/CLaimLens/presentation.html) · [GitHub](https://github.com/vgandhi1/CLaimLens)
+### ▶ [**Live presentation**](https://vgandhi1.github.io/claimlens/presentation.html) · [GitHub](https://github.com/vgandhi1/CLaimLens)
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-TF--IDF%20%2B%20LogReg-F7931E?style=flat-square&logo=scikitlearn&logoColor=white)](https://scikit-learn.org)

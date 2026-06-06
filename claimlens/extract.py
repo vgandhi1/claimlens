@@ -73,10 +73,12 @@ def _first_match(text: str, table: dict[str, str]) -> Optional[str]:
     return None
 
 
-def extract_fields(narrative: str) -> ExtractedFields:
+def extract_fields(narrative: str, part_number_hint: Optional[str] = None) -> ExtractedFields:
     """Pull component / failure mode / symptom / action / part numbers."""
     text = narrative.lower()
     parts = sorted(set(_PART_RE.findall(narrative)))
+    if part_number_hint and part_number_hint not in parts:
+        parts.insert(0, part_number_hint)
     return ExtractedFields(
         component=_first_match(text, _COMPONENTS),
         failure_mode=_first_match(text, _FAILURE_MODES),

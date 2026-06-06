@@ -7,29 +7,31 @@ Endpoints:
   POST /extract     — narrative -> structured fields
   POST /analyze     — narrative -> classification + extraction
   POST /trends      — batch of narratives -> Pareto failure-trend report
+  POST /handoff     — dominant overcycle trend -> QualityMind-ready payload
+  POST /handoff/execute — handoff + live POST to QualityMind /quality/five-why
 """
 
-from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 
 from claimlens import __version__
 from claimlens.classify import AnomalyClassifier
+from claimlens.config import API_KEY, MODEL_PATH
 from claimlens.extract import extract_fields
 from claimlens.handoff import build_handoff
 from claimlens.pipeline import analyze_batch, analyze_one
+from claimlens.qualitymind_client import QualityMindClientError, post_five_why
 from claimlens.schema import (
     AnalyzedClaim,
     ClaimNarrative,
     ClassificationResult,
     ExtractedFields,
     RcaHandoff,
+    RcaHandoffResponse,
     TrendReport,
 )
 from claimlens.trends import build_trend_report
-
-MODEL_PATH = Path("models/anomaly_clf.joblib")
 
 app = FastAPI(title="ClaimLens", version=__version__,
               description="Warranty-narrative NLP for field quality RCA")
@@ -50,6 +52,18 @@ def get_classifier() -> AnomalyClassifier:
     return _classifier
 
 
+@app.middleware("http")
+async def optional_api_key_guard(request: Request, call_next):
+    if not API_KEY:
+        return await call_next(request)
+    if request.url.path in {"/health", "/docs", "/redoc", "/openapi.json"}:
+        return await call_next(request)
+    provided = request.headers.get("X-API-Key")
+    if not provided or provided != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    return await call_next(request)
+
+
 @app.get("/health")
 def health() -> dict:
     return {
@@ -66,19 +80,31 @@ def classify(claim: ClaimNarrative) -> ClassificationResult:
 
 @app.post("/extract", response_model=ExtractedFields)
 def extract(claim: ClaimNarrative) -> ExtractedFields:
-    return extract_fields(claim.narrative)
+    return extract_fields(claim.narrative, part_number_hint=claim.part_number)
 
 
 @app.post("/analyze", response_model=AnalyzedClaim)
 def analyze(claim: ClaimNarrative) -> AnalyzedClaim:
-    return analyze_one(claim.narrative, get_classifier(), claim.claim_id)
+    return analyze_one(
+        claim.narrative,
+        get_classifier(),
+        claim.claim_id,
+        claim.part_number,
+    )
 
 
 @app.post("/trends", response_model=TrendReport)
 def trends(claims: list[ClaimNarrative]) -> TrendReport:
     if not claims:
         raise HTTPException(status_code=400, detail="Provide at least one narrative.")
-    records = [{"narrative": c.narrative, "claim_id": c.claim_id} for c in claims]
+    records = [
+        {
+            "narrative": c.narrative,
+            "claim_id": c.claim_id,
+            "part_number": c.part_number,
+        }
+        for c in claims
+    ]
     analyzed = analyze_batch(records, get_classifier())
     return build_trend_report(analyzed)
 
@@ -88,7 +114,14 @@ def handoff(claims: list[ClaimNarrative]) -> RcaHandoff:
     """Dominant overcycle trend -> QualityMind-RAG-ready 5-Why / 8D payload."""
     if not claims:
         raise HTTPException(status_code=400, detail="Provide at least one narrative.")
-    records = [{"narrative": c.narrative, "claim_id": c.claim_id} for c in claims]
+    records = [
+        {
+            "narrative": c.narrative,
+            "claim_id": c.claim_id,
+            "part_number": c.part_number,
+        }
+        for c in claims
+    ]
     analyzed = analyze_batch(records, get_classifier())
     payload = build_handoff(analyzed)
     if payload is None:
@@ -97,3 +130,17 @@ def handoff(claims: list[ClaimNarrative]) -> RcaHandoff:
             detail="No overcycle anomalies in this batch to escalate to RCA.",
         )
     return payload
+
+
+@app.post("/handoff/execute", response_model=RcaHandoffResponse)
+def handoff_execute(claims: list[ClaimNarrative]) -> RcaHandoffResponse:
+    """Build handoff payload and POST to a configured QualityMind-RAG instance."""
+    payload = handoff(claims)
+    try:
+        qm_response = post_five_why(payload)
+    except QualityMindClientError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+    return RcaHandoffResponse(**payload.model_dump(), qualitymind_response=qm_response)

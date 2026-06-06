@@ -4,11 +4,18 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from claimlens.config import MAX_NARRATIVE_LENGTH
+
 
 class ClaimNarrative(BaseModel):
     """A single free-text warranty / field-service narrative to analyze."""
 
-    narrative: str = Field(..., min_length=3, description="Free-text claim or field note")
+    narrative: str = Field(
+        ...,
+        min_length=3,
+        max_length=MAX_NARRATIVE_LENGTH,
+        description="Free-text claim or field note",
+    )
     claim_id: Optional[str] = None
     part_number: Optional[str] = None
 
@@ -67,3 +74,9 @@ class RcaHandoff(BaseModel):
     claim_count: int
     share: float = Field(..., ge=0.0, le=1.0)
     target_endpoints: list[str] = Field(default_factory=list)
+
+
+class RcaHandoffResponse(RcaHandoff):
+    """Handoff payload optionally enriched with a live QualityMind response."""
+
+    qualitymind_response: Optional[dict] = None

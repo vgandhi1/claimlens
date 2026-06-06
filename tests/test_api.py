@@ -16,6 +16,10 @@ def setup_module(_):
     api_module._classifier = clf
 
 
+def teardown_module(_):
+    api_module._classifier = None
+
+
 client = TestClient(app)
 
 
@@ -44,6 +48,17 @@ def test_analyze_endpoint_returns_extraction():
     assert body["extracted"]["component"] == "Telematics Control Unit"
 
 
+def test_extract_endpoint():
+    r = client.post("/extract", json={
+        "narrative": "gateway fails to sync",
+        "part_number": "GW-0099",
+    })
+    assert r.status_code == 200
+    body = r.json()
+    assert body["component"] == "Connectivity Gateway"
+    assert "GW-0099" in body["part_numbers"]
+
+
 def test_trends_endpoint():
     payload = [
         {"narrative": "soft reset repeatedly watchdog reboot"},
@@ -57,3 +72,39 @@ def test_trends_endpoint():
 
 def test_trends_rejects_empty():
     assert client.post("/trends", json=[]).status_code == 400
+
+
+def test_handoff_returns_payload():
+    payload = [
+        {"narrative": "soft reset repeatedly watchdog reboot"},
+        {"narrative": "soft reset again after ignition cycle"},
+    ]
+    r = client.post("/handoff", json=payload)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["anomaly_label"] == "soft_reset"
+    assert "/quality/five-why" in body["target_endpoints"]
+
+
+def test_handoff_no_overcycle_returns_404():
+    payload = [{"narrative": "no fault found, bench test passed"}]
+    assert client.post("/handoff", json=payload).status_code == 404
+
+
+def test_model_missing_returns_503(monkeypatch):
+    from pathlib import Path
+
+    import claimlens.config as config_module
+
+    api_module._classifier = None
+    monkeypatch.setattr(config_module, "MODEL_PATH", Path("models/does_not_exist.joblib"))
+    monkeypatch.setattr(api_module, "MODEL_PATH", Path("models/does_not_exist.joblib"))
+    r = client.post("/classify", json={"narrative": "soft reset repeatedly"})
+    assert r.status_code == 503
+
+
+def test_handoff_execute_requires_qualitymind_url(monkeypatch):
+    monkeypatch.setattr("claimlens.config.QUALITYMIND_BASE_URL", "")
+    payload = [{"narrative": "soft reset repeatedly watchdog reboot"}]
+    r = client.post("/handoff/execute", json=payload)
+    assert r.status_code == 502

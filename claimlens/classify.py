@@ -53,11 +53,7 @@ class AnomalyClassifier:
         self._fitted = True
         return self
 
-    def predict(self, text: str) -> ClassificationResult:
-        if not self._fitted:
-            raise RuntimeError("Classifier is not trained. Call fit() or load() first.")
-        proba = self.pipeline.predict_proba([text])[0]
-        classes = list(self.pipeline.classes_)
+    def _result_from_proba(self, proba, classes: list[str]) -> ClassificationResult:
         scores = {c: round(float(p), 4) for c, p in zip(classes, proba)}
         best_idx = max(range(len(proba)), key=lambda i: proba[i])
         label = classes[best_idx]
@@ -68,6 +64,19 @@ class AnomalyClassifier:
             is_overcycle=label in OVERCYCLE_LABELS,
             scores=scores,
         )
+
+    def predict(self, text: str) -> ClassificationResult:
+        return self.predict_many([text])[0]
+
+    def predict_many(self, texts: list[str]) -> list[ClassificationResult]:
+        """Vectorized scoring: one TF-IDF transform + predict_proba for the batch."""
+        if not self._fitted:
+            raise RuntimeError("Classifier is not trained. Call fit() or load() first.")
+        if not texts:
+            return []
+        classes = list(self.pipeline.classes_)
+        probas = self.pipeline.predict_proba(texts)
+        return [self._result_from_proba(proba, classes) for proba in probas]
 
     def predict_batch(self, texts: list[str]) -> list[str]:
         if not self._fitted:

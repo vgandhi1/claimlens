@@ -11,6 +11,7 @@ Endpoints:
   POST /handoff/execute — handoff + live POST to QualityMind /quality/five-why
 """
 
+import hmac
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
@@ -59,7 +60,8 @@ async def optional_api_key_guard(request: Request, call_next):
     if request.url.path in {"/health", "/docs", "/redoc", "/openapi.json"}:
         return await call_next(request)
     provided = request.headers.get("X-API-Key")
-    if not provided or provided != API_KEY:
+    # Constant-time compare to avoid leaking the key via a timing side-channel.
+    if not provided or not hmac.compare_digest(provided, API_KEY):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
     return await call_next(request)
 
@@ -69,7 +71,10 @@ def health() -> dict:
     return {
         "status": "ok",
         "version": __version__,
-        "model_loaded": _classifier is not None or MODEL_PATH.exists(),
+        # Reflect actual in-memory load state; a present-but-corrupt file would
+        # still fail on first /classify, so don't claim loaded on file existence.
+        "model_loaded": _classifier is not None,
+        "model_file_present": MODEL_PATH.exists(),
     }
 
 

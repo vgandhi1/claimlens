@@ -26,12 +26,15 @@ def analyze_batch(
     classifier: AnomalyClassifier,
 ) -> list[AnalyzedClaim]:
     """`records` are dicts with at least a 'narrative' key (optional 'claim_id', 'part_number')."""
+    narratives = [r["narrative"] for r in records]
+    # Single vectorized classification pass; extraction stays per-record (pure regex).
+    classifications = classifier.predict_many(narratives)
     return [
-        analyze_one(
-            r["narrative"],
-            classifier,
-            r.get("claim_id"),
-            r.get("part_number"),
+        AnalyzedClaim(
+            claim_id=r.get("claim_id"),
+            narrative=r["narrative"],
+            classification=classification,
+            extracted=extract_fields(r["narrative"], part_number_hint=r.get("part_number")),
         )
-        for r in records
+        for r, classification in zip(records, classifications)
     ]

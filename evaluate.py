@@ -14,11 +14,12 @@ import csv
 import json
 from pathlib import Path
 
+import numpy as np
 from sklearn.metrics import classification_report
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 
 from claimlens.anomaly import LABEL_NAMES, LABELS
-from claimlens.classify import AnomalyClassifier
+from claimlens.classify import AnomalyClassifier, build_pipeline
 
 DATA = Path("data/claims.csv")
 MODEL_OUT = Path("models/anomaly_clf.joblib")
@@ -51,6 +52,18 @@ def main() -> None:
         y_test, y_pred, labels=LABELS, output_dict=True, zero_division=0
     )
 
+    # Stratified 5-fold CV on the full dataset gives a less optimistic estimate
+    # than a single holdout (important since the corpus is template-generated).
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_macro_f1 = cross_val_score(
+        build_pipeline(), texts, labels, cv=skf, scoring="f1_macro"
+    )
+    report["cv_macro_f1"] = {
+        "mean": round(float(np.mean(cv_macro_f1)), 4),
+        "std": round(float(np.std(cv_macro_f1)), 4),
+        "folds": [round(float(s), 4) for s in cv_macro_f1],
+    }
+
     clf.save(MODEL_OUT)
     METRICS_OUT.parent.mkdir(parents=True, exist_ok=True)
     METRICS_OUT.write_text(json.dumps(report, indent=2))
@@ -65,6 +78,8 @@ def main() -> None:
     print(f"\n{'macro avg':<22}{macro['precision']:>10.3f}"
           f"{macro['recall']:>9.3f}{macro['f1-score']:>8.3f}")
     print(f"{'accuracy':<22}{report['accuracy']:>27.3f}")
+    cv = report["cv_macro_f1"]
+    print(f"\n{'5-fold macro-F1':<22}{cv['mean']:>10.3f} ± {cv['std']:.3f}")
     print(f"\nModel  -> {MODEL_OUT}\nMetrics -> {METRICS_OUT}")
 
 

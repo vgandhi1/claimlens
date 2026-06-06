@@ -12,7 +12,12 @@ from typing import Optional
 from claimlens.schema import ExtractedFields
 
 # Part numbers like "TCU-4821", "ECU-22A", "GW-0097"
-_PART_RE = re.compile(r"\b[A-Z]{2,4}-\d{2,5}[A-Z]?\b")
+_PART_RE = re.compile(r"\b[A-Z]{2,4}-\d{2,5}[A-Z]?\b", re.ASCII)
+
+# Acronym-dash-number codes that share the part-number shape but are not parts.
+_NON_PART_PREFIXES = frozenset(
+    {"VIN", "DTC", "OBD", "GPS", "LTE", "USB", "RPM", "VOC", "NFF", "PID", "CAN"}
+)
 
 _COMPONENTS = {
     "tcu": "Telematics Control Unit",
@@ -67,16 +72,24 @@ _ACTIONS = {
 
 
 def _first_match(text: str, table: dict[str, str]) -> Optional[str]:
-    for needle, value in table.items():
-        if needle in text:
-            return value
-    return None
+    """Return the value for the longest matching needle (most specific wins).
+
+    Length tie-break avoids order-dependent results when a narrative contains
+    several keywords (e.g. "gateway" beating the shorter alias "gw").
+    """
+    best_needle: Optional[str] = None
+    for needle in table:
+        if needle in text and (best_needle is None or len(needle) > len(best_needle)):
+            best_needle = needle
+    return table[best_needle] if best_needle is not None else None
 
 
 def extract_fields(narrative: str, part_number_hint: Optional[str] = None) -> ExtractedFields:
     """Pull component / failure mode / symptom / action / part numbers."""
     text = narrative.lower()
-    parts = sorted(set(_PART_RE.findall(narrative)))
+    parts = sorted(
+        p for p in set(_PART_RE.findall(narrative)) if p.split("-", 1)[0] not in _NON_PART_PREFIXES
+    )
     if part_number_hint and part_number_hint not in parts:
         parts.insert(0, part_number_hint)
     return ExtractedFields(

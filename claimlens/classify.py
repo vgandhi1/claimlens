@@ -17,6 +17,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from claimlens.anomaly import LABEL_NAMES, OVERCYCLE_LABELS
+from claimlens.config import CONFIDENCE_REVIEW_THRESHOLD
 from claimlens.schema import ClassificationResult
 
 _RANDOM_STATE = 42
@@ -62,6 +63,7 @@ class AnomalyClassifier:
             label_name=LABEL_NAMES.get(label, label),
             confidence=round(float(proba[best_idx]), 4),
             is_overcycle=label in OVERCYCLE_LABELS,
+            needs_review=float(proba[best_idx]) < CONFIDENCE_REVIEW_THRESHOLD,
             scores=scores,
         )
 

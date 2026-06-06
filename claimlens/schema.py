@@ -37,6 +37,7 @@ class ClassificationResult(BaseModel):
     label_name: str
     confidence: float = Field(..., ge=0.0, le=1.0)
     is_overcycle: bool
+    needs_review: bool = False
     scores: dict[str, float] = Field(default_factory=dict)
 
 

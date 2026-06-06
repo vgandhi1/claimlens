@@ -11,19 +11,21 @@ Usage:
 """
 
 import csv
+import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
+import joblib
 import numpy as np
 from sklearn.metrics import classification_report
 from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 
 from claimlens.anomaly import LABEL_NAMES, LABELS
 from claimlens.classify import AnomalyClassifier, build_pipeline
+from claimlens.config import CONFIDENCE_REVIEW_THRESHOLD, MANIFEST_PATH, METRICS_PATH, MODEL_PATH
 
 DATA = Path("data/claims.csv")
-MODEL_OUT = Path("models/anomaly_clf.joblib")
-METRICS_OUT = Path("models/metrics.json")
 
 
 def load_data(path: Path) -> tuple[list[str], list[str]]:
@@ -64,9 +66,31 @@ def main() -> None:
         "folds": [round(float(s), 4) for s in cv_macro_f1],
     }
 
-    clf.save(MODEL_OUT)
-    METRICS_OUT.parent.mkdir(parents=True, exist_ok=True)
-    METRICS_OUT.write_text(json.dumps(report, indent=2))
+    macro = report["macro avg"]
+    cv = report["cv_macro_f1"]
+
+    clf.save(MODEL_PATH)
+    METRICS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    METRICS_PATH.write_text(json.dumps(report, indent=2))
+
+    data_bytes = DATA.read_bytes()
+    manifest = {
+        "trained_at": datetime.now(timezone.utc).isoformat(),
+        "environment": "development",
+        "model_path": str(MODEL_PATH),
+        "data_path": str(DATA),
+        "data_sha256": hashlib.sha256(data_bytes).hexdigest(),
+        "train_size": len(X_train),
+        "test_size": len(X_test),
+        "labels": LABELS,
+        "sklearn_version": __import__("sklearn").__version__,
+        "joblib_version": joblib.__version__,
+        "holdout_macro_f1": round(float(macro["f1-score"]), 4),
+        "cv_macro_f1_mean": cv["mean"],
+        "cv_macro_f1_std": cv["std"],
+        "confidence_review_threshold": CONFIDENCE_REVIEW_THRESHOLD,
+    }
+    MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
 
     print(f"\nTrained on {len(X_train)} / tested on {len(X_test)} narratives\n")
     print(f"{'Class':<22}{'precision':>10}{'recall':>9}{'f1':>8}{'support':>9}")
@@ -74,13 +98,13 @@ def main() -> None:
         m = report[label]
         print(f"{LABEL_NAMES[label]:<22}{m['precision']:>10.3f}"
               f"{m['recall']:>9.3f}{m['f1-score']:>8.3f}{int(m['support']):>9}")
-    macro = report["macro avg"]
     print(f"\n{'macro avg':<22}{macro['precision']:>10.3f}"
           f"{macro['recall']:>9.3f}{macro['f1-score']:>8.3f}")
     print(f"{'accuracy':<22}{report['accuracy']:>27.3f}")
-    cv = report["cv_macro_f1"]
     print(f"\n{'5-fold macro-F1':<22}{cv['mean']:>10.3f} ± {cv['std']:.3f}")
-    print(f"\nModel  -> {MODEL_OUT}\nMetrics -> {METRICS_OUT}")
+    print(f"\nModel   -> {MODEL_PATH}")
+    print(f"Metrics -> {METRICS_PATH}")
+    print(f"Manifest -> {MANIFEST_PATH}")
 
 
 if __name__ == "__main__":

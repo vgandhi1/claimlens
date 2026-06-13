@@ -22,7 +22,7 @@ from claimlens.config import API_KEY, MODEL_PATH
 from claimlens.extract import extract_fields
 from claimlens.handoff import build_handoff
 from claimlens.pipeline import analyze_batch, analyze_one
-from claimlens.qualitymind_client import QualityMindClientError, post_five_why
+from claimlens.qualitymind_client import QualityMindClientError, execute_handoff
 from claimlens.schema import (
     AnalyzedClaim,
     ClaimNarrative,
@@ -139,13 +139,17 @@ def handoff(claims: list[ClaimNarrative]) -> RcaHandoff:
 
 @app.post("/handoff/execute", response_model=RcaHandoffResponse)
 def handoff_execute(claims: list[ClaimNarrative]) -> RcaHandoffResponse:
-    """Build handoff payload and POST to a configured QualityMind-RAG instance."""
+    """Build handoff payload and POST to every target endpoint on QualityMind-RAG.
+
+    Drives all `target_endpoints` (e.g. /quality/five-why + /quality/draft-8d).
+    Returns a per-endpoint result map; only 502s if all endpoints fail.
+    """
     payload = handoff(claims)
     try:
-        qm_response = post_five_why(payload)
+        qm_responses = execute_handoff(payload)
     except QualityMindClientError as exc:
         raise HTTPException(
             status_code=502,
             detail=str(exc),
         ) from exc
-    return RcaHandoffResponse(**payload.model_dump(), qualitymind_response=qm_response)
+    return RcaHandoffResponse(**payload.model_dump(), qualitymind_response=qm_responses)

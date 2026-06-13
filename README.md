@@ -60,15 +60,17 @@ Everything below is produced by `evaluate.py` on a stratified 75/25 split of
 
 | Class | Precision | Recall | F1 |
 |---|---|---|---|
-| Soft Reset | 0.86 | 0.91 | 0.88 |
-| Cloud Sync | 0.92 | 0.89 | 0.91 |
-| Connectivity Loss | 0.91 | 0.96 | 0.94 |
-| Power Cycle | 0.88 | 0.84 | 0.86 |
-| No Fault Found | 0.92 | 0.91 | 0.91 |
+| Soft Reset | 0.83 | 0.84 | 0.83 |
+| Cloud Sync | 0.91 | 0.87 | 0.89 |
+| Connectivity Loss | 0.88 | 0.95 | 0.91 |
+| Power Cycle | 0.96 | 0.94 | 0.95 |
+| No Fault Found | 0.90 | 0.88 | 0.89 |
 | **macro avg** | **0.90** | **0.90** | **0.90** |
 
-The synthetic corpus deliberately includes ~18% ambiguous / blended hard cases
-so the score reflects real field-note messiness rather than a separable toy set.
+The synthetic corpus mirrors published automotive-warranty theme frequencies
+(infotainment / OTA / cloud-sync dominant, with battery-range and key-fob / USB
+edge cases) and deliberately includes ~18% ambiguous / blended hard cases, so the
+score reflects real field-note messiness rather than a separable toy set.
 Re-run it yourself:
 
 ```bash

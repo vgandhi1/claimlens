@@ -7,7 +7,21 @@ returns; correctly separating them from genuine hardware faults is the first
 triage step in field root-cause analysis.
 """
 
+from enum import Enum
 from typing import Final
+
+
+class SourceType(str, Enum):
+    """Upstream stream a warranty narrative arrived from.
+
+    Drives the by-source Pareto breakdown and stream-conditional extraction
+    emphasis. `str` base keeps JSON output as the plain value.
+    """
+
+    customer_complaint = "customer_complaint"
+    dealer_ro = "dealer_ro"
+    field_log = "field_log"
+
 
 # Canonical labels (stable string ids used in data, models, and the API).
 SOFT_RESET: Final = "soft_reset"

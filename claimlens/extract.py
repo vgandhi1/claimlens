@@ -9,6 +9,7 @@ connected-ECU field language and are easy to extend.
 import re
 from typing import Optional
 
+from claimlens.anomaly import SourceType
 from claimlens.schema import ExtractedFields
 
 # Part numbers like "TCU-4821", "ECU-22A", "GW-0097"
@@ -71,6 +72,38 @@ _ACTIONS = {
 }
 
 
+# Stream-conditional supplements (regex-first, deterministic). Consulted only
+# for the matching source_type, so the default (source_type=None) path is
+# byte-identical to before.
+
+# dealer_ro narratives are repair orders — extra repair-action vocabulary so
+# action_taken is recovered when the base gazetteer misses it.
+_DEALER_RO_ACTIONS = {
+    "r&r": "removed and replaced",
+    "removed and replaced": "removed and replaced",
+    "swapped": "component replaced",
+    "cleared codes": "DTCs cleared",
+    "cleared dtc": "DTCs cleared",
+    "road tested": "road tested",
+    "warranty repair": "warranty repair performed",
+    "recalibrated": "recalibrated",
+}
+
+# field_log narratives are terse machine logs — extra overcycle failure-mode
+# vocabulary so reset/sync/power-cycle evidence is captured.
+_FIELD_LOG_FAILURE_MODES = {
+    "watchdog": "watchdog reset",
+    "watchdog reset": "watchdog reset",
+    "brownout": "power brownout",
+    "cold boot": "cold restart",
+    "cold-boot": "cold restart",
+    "power cycle": "hard power cycle",
+    "sync retry": "sync retry exhausted",
+    "retries exhausted": "sync retry exhausted",
+    "offline": "connectivity loss",
+}
+
+
 def _first_match(text: str, table: dict[str, str]) -> Optional[str]:
     """Return the value for the longest matching needle (most specific wins).
 
@@ -84,18 +117,37 @@ def _first_match(text: str, table: dict[str, str]) -> Optional[str]:
     return table[best_needle] if best_needle is not None else None
 
 
-def extract_fields(narrative: str, part_number_hint: Optional[str] = None) -> ExtractedFields:
-    """Pull component / failure mode / symptom / action / part numbers."""
+def extract_fields(
+    narrative: str,
+    part_number_hint: Optional[str] = None,
+    source_type: Optional[SourceType] = None,
+) -> ExtractedFields:
+    """Pull component / failure mode / symptom / action / part numbers.
+
+    `source_type` applies deterministic per-stream emphasis: dealer_ro falls back
+    to an extended repair-action gazetteer for action_taken, and field_log falls
+    back to extended overcycle vocabulary for failure_mode. Both only fire when
+    the base match is empty, so they recover signal without changing existing
+    outputs. Classification labels are untouched (taxonomy locked).
+    """
     text = narrative.lower()
     parts = sorted(
         p for p in set(_PART_RE.findall(narrative)) if p.split("-", 1)[0] not in _NON_PART_PREFIXES
     )
     if part_number_hint and part_number_hint not in parts:
         parts.insert(0, part_number_hint)
+
+    failure_mode = _first_match(text, _FAILURE_MODES)
+    action_taken = _first_match(text, _ACTIONS)
+    if source_type == SourceType.dealer_ro and action_taken is None:
+        action_taken = _first_match(text, _DEALER_RO_ACTIONS)
+    if source_type == SourceType.field_log and failure_mode is None:
+        failure_mode = _first_match(text, _FIELD_LOG_FAILURE_MODES)
+
     return ExtractedFields(
         component=_first_match(text, _COMPONENTS),
-        failure_mode=_first_match(text, _FAILURE_MODES),
+        failure_mode=failure_mode,
         symptom=_first_match(text, _SYMPTOMS),
-        action_taken=_first_match(text, _ACTIONS),
+        action_taken=action_taken,
         part_numbers=parts,
     )

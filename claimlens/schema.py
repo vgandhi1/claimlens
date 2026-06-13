@@ -4,6 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from claimlens.anomaly import SourceType
 from claimlens.config import MAX_NARRATIVE_LENGTH
 
 
@@ -18,6 +19,10 @@ class ClaimNarrative(BaseModel):
     )
     claim_id: Optional[str] = None
     part_number: Optional[str] = None
+    source_type: Optional[SourceType] = Field(
+        default=None,
+        description="Upstream stream (customer_complaint|dealer_ro|field_log)",
+    )
 
 
 class ExtractedFields(BaseModel):
@@ -48,6 +53,7 @@ class AnalyzedClaim(BaseModel):
     narrative: str
     classification: ClassificationResult
     extracted: ExtractedFields
+    source_type: Optional[SourceType] = None
 
 
 class TrendBucket(BaseModel):
@@ -63,6 +69,7 @@ class TrendReport(BaseModel):
     by_label: list[TrendBucket]
     by_component: list[TrendBucket]
     by_failure_mode: list[TrendBucket]
+    by_source: list[TrendBucket] = Field(default_factory=list)
     overcycle_share: float = Field(..., ge=0.0, le=1.0)
 
 

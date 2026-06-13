@@ -85,7 +85,11 @@ def classify(claim: ClaimNarrative) -> ClassificationResult:
 
 @app.post("/extract", response_model=ExtractedFields)
 def extract(claim: ClaimNarrative) -> ExtractedFields:
-    return extract_fields(claim.narrative, part_number_hint=claim.part_number)
+    return extract_fields(
+        claim.narrative,
+        part_number_hint=claim.part_number,
+        source_type=claim.source_type,
+    )
 
 
 @app.post("/analyze", response_model=AnalyzedClaim)
@@ -95,6 +99,7 @@ def analyze(claim: ClaimNarrative) -> AnalyzedClaim:
         get_classifier(),
         claim.claim_id,
         claim.part_number,
+        claim.source_type,
     )
 
 
@@ -107,6 +112,7 @@ def trends(claims: list[ClaimNarrative]) -> TrendReport:
             "narrative": c.narrative,
             "claim_id": c.claim_id,
             "part_number": c.part_number,
+            "source_type": c.source_type,
         }
         for c in claims
     ]
@@ -124,6 +130,7 @@ def handoff(claims: list[ClaimNarrative]) -> RcaHandoff:
             "narrative": c.narrative,
             "claim_id": c.claim_id,
             "part_number": c.part_number,
+            "source_type": c.source_type,
         }
         for c in claims
     ]

@@ -33,18 +33,26 @@ COMPONENTS = [
 ]
 
 # Class-conditional phrase banks (the learnable signal).
+# Class-conditional phrase banks (the learnable signal). Theme phrasing mirrors
+# published automotive-warranty frequencies — infotainment / OTA / cloud-sync
+# dominant, with battery-range disputes and key-fob / USB edge cases — mapped
+# onto the locked 5-label taxonomy (themes are vocabulary, NOT new labels).
 TEMPLATES = {
     SOFT_RESET: [
         "unit performs a soft reset {freq}; logs show watchdog reboot without power loss",
         "{comp} spontaneously reboots {freq}, self-recovers in seconds, no DTC stored",
         "device resets itself {freq} during operation, firmware restarts cleanly",
         "recurring soft reset on {comp}, comes back online automatically after reboot",
+        "infotainment head unit reboots {freq} after the latest OTA update, screen restarts",
+        "head unit watchdog restart {freq} following firmware update, no power loss",
     ],
     CLOUD_SYNC: [
         "{comp} fails to sync with cloud backend {freq}; telematics records not uploading",
         "cloud sync timeout {freq}, data queued locally but never reaches server",
         "backend handshake fails, unit cannot sync trip data to cloud {freq}",
         "OTA/cloud synchronization error after update, sync retries exhausted",
+        "infotainment OTA download stalls {freq}, map and firmware sync never completes",
+        "connected-services app desync {freq}, account fails to sync with cloud profile",
     ],
     CONNECTIVITY_LOSS: [
         "{comp} drops cellular connection {freq}, no signal reported on dash",
@@ -65,6 +73,37 @@ TEMPLATES = {
         "{comp} within spec on all checks, no anomaly detected",
     ],
 }
+
+# Rare edge-case phrasing from the warranty literature (key-fob / USB / battery
+# range). Genuinely infrequent — sampled at EDGE_RATE so they stay "edge cases"
+# and do not blur the bulk signal of their host class.
+EDGE_TEMPLATES = {
+    CONNECTIVITY_LOSS: [
+        "key fob loses pairing {freq}, range drops and remote unlock fails",
+        "USB device disconnects {freq}, port enumeration lost, phone link drops",
+    ],
+    NO_FAULT: [
+        "customer disputes battery range {freq}; diagnostic within spec, no fault found",
+        "USB port reported not recognized {freq}, passed retest, no fault found",
+    ],
+}
+EDGE_RATE = 0.12
+
+# Published-warranty-inspired label weights (themes mapped onto locked taxonomy).
+# cloud_sync (infotainment/OTA/cloud) dominant; soft_reset (post-OTA reboots)
+# next; connectivity_loss carries key-fob/USB edge cases; no_fault carries
+# battery-range disputes. A per-class floor protects macro-F1 + StratifiedKFold.
+LABEL_WEIGHTS = {
+    CLOUD_SYNC: 0.32,
+    SOFT_RESET: 0.24,
+    CONNECTIVITY_LOSS: 0.18,
+    POWER_CYCLE: 0.13,
+    NO_FAULT: 0.13,
+}
+# Floor is the dominant lever: it keeps the minority classes (power_cycle,
+# no_fault) above the support level macro-F1 needs while the weights still make
+# cloud_sync/soft_reset visibly dominant. Tuned so holdout macro-F1 >= 0.88.
+MIN_PER_CLASS = 140
 
 FREQ = ["intermittently", "every ignition cycle", "overnight while parked",
         "on the highway", "repeatedly", "after the last OTA update"]
@@ -92,12 +131,31 @@ CROSSTALK = {
 }
 
 
-def _row(rng: random.Random, idx: int, start: date, noise: float) -> dict:
-    label = rng.choice(list(TEMPLATES))
+def _weighted_labels(rng: random.Random, n: int) -> list[str]:
+    """Label sequence matching LABEL_WEIGHTS with a MIN_PER_CLASS floor.
+
+    Emits the floor for every label first (guarantees support for macro-F1 and
+    5-fold stratification), then fills the remainder by weighted draw. Shuffled
+    so label order is not positional. Deterministic for a given rng/seed.
+    """
+    labels = list(LABEL_WEIGHTS)
+    floor = min(MIN_PER_CLASS, n // len(labels))
+    seq = [lbl for lbl in labels for _ in range(floor)]
+    remaining = n - len(seq)
+    if remaining > 0:
+        weights = [LABEL_WEIGHTS[lbl] for lbl in labels]
+        seq.extend(rng.choices(labels, weights=weights, k=remaining))
+    rng.shuffle(seq)
+    return seq
+
+
+def _row(rng: random.Random, idx: int, start: date, noise: float, label: str) -> dict:
     comp_name, part_fmt = rng.choice(COMPONENTS)
     part = part_fmt.format(rng.randint(1, 999))
     if rng.random() < noise:
         template = rng.choice(AMBIGUOUS)
+    elif label in EDGE_TEMPLATES and rng.random() < EDGE_RATE:
+        template = rng.choice(EDGE_TEMPLATES[label])
     else:
         template = rng.choice(TEMPLATES[label])
     narrative = template.format(comp=comp_name, freq=rng.choice(FREQ))
@@ -118,7 +176,8 @@ def _row(rng: random.Random, idx: int, start: date, noise: float) -> dict:
 def generate(n: int, seed: int = 42, noise: float = 0.18) -> list[dict]:
     rng = random.Random(seed)
     start = date(2025, 1, 1)
-    return [_row(rng, i, start, noise) for i in range(1, n + 1)]
+    labels = _weighted_labels(rng, n)
+    return [_row(rng, i, start, noise, labels[i - 1]) for i in range(1, n + 1)]
 
 
 def main() -> None:

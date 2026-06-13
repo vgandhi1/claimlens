@@ -53,5 +53,10 @@ def build_trend_report(claims: list[AnalyzedClaim]) -> TrendReport:
         by_failure_mode=_pareto(
             (c.extracted.failure_mode for c in claims), total, include_unknown=True
         ),
+        by_source=_pareto(
+            (c.source_type.value if c.source_type else None for c in claims),
+            total,
+            include_unknown=True,
+        ),
         overcycle_share=round(overcycle / total, 4) if total else 0.0,
     )

@@ -18,12 +18,12 @@ from pathlib import Path
 
 import joblib
 import numpy as np
-from sklearn.metrics import classification_report
 from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 
 from claimlens.anomaly import LABEL_NAMES, LABELS
 from claimlens.classify import AnomalyClassifier, build_pipeline
 from claimlens.config import CONFIDENCE_REVIEW_THRESHOLD, MANIFEST_PATH, METRICS_PATH, MODEL_PATH
+from claimlens.eval_metrics import build_eval_artifacts
 
 DATA = Path("data/claims.csv")
 
@@ -50,9 +50,8 @@ def main() -> None:
     clf = AnomalyClassifier().fit(X_train, y_train)
     y_pred = clf.predict_batch(X_test)
 
-    report = classification_report(
-        y_test, y_pred, labels=LABELS, output_dict=True, zero_division=0
-    )
+    # Holdout report + confusion matrix + per-label / overcycle recall.
+    report = build_eval_artifacts(y_test, y_pred)
 
     # Stratified 5-fold CV on the full dataset gives a less optimistic estimate
     # than a single holdout (important since the corpus is template-generated).
@@ -102,6 +101,7 @@ def main() -> None:
           f"{macro['recall']:>9.3f}{macro['f1-score']:>8.3f}")
     print(f"{'accuracy':<22}{report['accuracy']:>27.3f}")
     print(f"\n{'5-fold macro-F1':<22}{cv['mean']:>10.3f} ± {cv['std']:.3f}")
+    print(f"{'overcycle recall':<22}{report['overcycle_recall']['macro']:>10.3f}")
     print(f"\nModel   -> {MODEL_PATH}")
     print(f"Metrics -> {METRICS_PATH}")
     print(f"Manifest -> {MANIFEST_PATH}")

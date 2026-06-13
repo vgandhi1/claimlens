@@ -3,6 +3,7 @@
 **Status:** ✅ IMPLEMENTED 2026-06-13 (all three items merged in-repo; 58 tests pass, ruff clean).
 **Scope:** CLaimLens repo only. QualityMind-RAG: **no change** (see Scope boundary).
 **Authority:** Constrained by `quality-engineering/QUALITY-ENGG-GUARDRAILS.md` Part 2 (CLaimLens) + Part 5/6 (shared / Hard NOs).
+**Workflow source:** [`TEXT-NARRATIVE-PATH.md`](TEXT-NARRATIVE-PATH.md) — defines the three intake streams (customer complaint · dealer RO · field log) that #8's `source_type` enum implements, and the ingest→structure→aggregate→escalate loop CLaimLens owns (steps 1–3).
 **Date:** 2026-06-13 (design) → implemented same day.
 **Origin:** Hand-written after the AgentForge `design` preset produced unusable output — see `Agents/agent-forge/agentforge-failure.md`.
 

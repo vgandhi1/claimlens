@@ -2,6 +2,7 @@
 
 **Status:** ✅ IMPLEMENTED 2026-06-13 — plan executed as written (one addition: `EDGE_TEMPLATES`, see §10).
 **Companion:** `REQUIREMENTS-items-8-10.md`.
+**Workflow source:** [`TEXT-NARRATIVE-PATH.md`](TEXT-NARRATIVE-PATH.md) (CLaimLens owns steps 1–3; #8 `source_type` = its three intake streams).
 **Date:** 2026-06-13
 
 Concrete, file-level plan. Each change is additive and offline-testable. The plan

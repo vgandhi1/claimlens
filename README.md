@@ -50,6 +50,12 @@ issue to drive through formal RCA.
 > takes these failure trends into automated 5-Why / Ishikawa / 8D / CAPA workflows.
 > ClaimLens is the *narrative → structured signal* front end; QualityMind is the
 > *structured signal → corrective action* back end.
+>
+> **Workflow context:** ClaimLens owns steps 1–3 (ingest → structure → aggregate)
+> of the [Text / Narrative Path](docs/TEXT-NARRATIVE-PATH.md). The three intake
+> streams it recognizes (customer complaint · dealer RO · field log) and the
+> Pareto→RCA loop are defined there; design and implementation are bound by the
+> portfolio Quality Engineering AI Guardrails.
 
 ---
 

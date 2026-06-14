@@ -17,7 +17,7 @@
 ## Scope boundary (read first)
 
 All three items are **CLaimLens-internal**. The cross-project `/handoff` contract
-(`RcaHandoff`: `problem_statement`, `part_number`, `anomaly_label`, `claim_count`,
+(`RcaHandoff`: `problem_statement`, `component`, `anomaly_label`, `claim_count`,
 `share`, `target_endpoints`) is **NOT touched**. `source_type` stays inside CLaimLens
 intake/trends and is never added to the handoff payload — so QualityMind-RAG's consumer
 needs no update (Guardrail: "No handoff contract changes without updating both sides" —

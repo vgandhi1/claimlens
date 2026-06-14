@@ -14,7 +14,7 @@ Endpoints:
 import hmac
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 
 from claimlens import __version__
 from claimlens.classify import AnomalyClassifier
@@ -85,11 +85,7 @@ def classify(claim: ClaimNarrative) -> ClassificationResult:
 
 @app.post("/extract", response_model=ExtractedFields)
 def extract(claim: ClaimNarrative) -> ExtractedFields:
-    return extract_fields(
-        claim.narrative,
-        part_number_hint=claim.part_number,
-        source_type=claim.source_type,
-    )
+    return extract_fields(claim.narrative, source_type=claim.source_type)
 
 
 @app.post("/analyze", response_model=AnalyzedClaim)
@@ -98,7 +94,6 @@ def analyze(claim: ClaimNarrative) -> AnalyzedClaim:
         claim.narrative,
         get_classifier(),
         claim.claim_id,
-        claim.part_number,
         claim.source_type,
     )
 
@@ -111,7 +106,6 @@ def trends(claims: list[ClaimNarrative]) -> TrendReport:
         {
             "narrative": c.narrative,
             "claim_id": c.claim_id,
-            "part_number": c.part_number,
             "source_type": c.source_type,
         }
         for c in claims
@@ -121,7 +115,14 @@ def trends(claims: list[ClaimNarrative]) -> TrendReport:
 
 
 @app.post("/handoff", response_model=RcaHandoff)
-def handoff(claims: list[ClaimNarrative]) -> RcaHandoff:
+def handoff(
+    claims: list[ClaimNarrative],
+    exclude_needs_review: bool = Query(
+        False,
+        description="Drop low-confidence needs_review claims before trend selection "
+        "(guardrail: triage before RCA).",
+    ),
+) -> RcaHandoff:
     """Dominant overcycle trend -> QualityMind-RAG-ready 5-Why / 8D payload."""
     if not claims:
         raise HTTPException(status_code=400, detail="Provide at least one narrative.")
@@ -129,13 +130,12 @@ def handoff(claims: list[ClaimNarrative]) -> RcaHandoff:
         {
             "narrative": c.narrative,
             "claim_id": c.claim_id,
-            "part_number": c.part_number,
             "source_type": c.source_type,
         }
         for c in claims
     ]
     analyzed = analyze_batch(records, get_classifier())
-    payload = build_handoff(analyzed)
+    payload = build_handoff(analyzed, exclude_needs_review=exclude_needs_review)
     if payload is None:
         raise HTTPException(
             status_code=404,
@@ -145,13 +145,20 @@ def handoff(claims: list[ClaimNarrative]) -> RcaHandoff:
 
 
 @app.post("/handoff/execute", response_model=RcaHandoffResponse)
-def handoff_execute(claims: list[ClaimNarrative]) -> RcaHandoffResponse:
+def handoff_execute(
+    claims: list[ClaimNarrative],
+    exclude_needs_review: bool = Query(
+        False,
+        description="Drop low-confidence needs_review claims before trend selection "
+        "(guardrail: triage before RCA).",
+    ),
+) -> RcaHandoffResponse:
     """Build handoff payload and POST to every target endpoint on QualityMind-RAG.
 
     Drives all `target_endpoints` (e.g. /quality/five-why + /quality/draft-8d).
     Returns a per-endpoint result map; only 502s if all endpoints fail.
     """
-    payload = handoff(claims)
+    payload = handoff(claims, exclude_needs_review=exclude_needs_review)
     try:
         qm_responses = execute_handoff(payload)
     except QualityMindClientError as exc:

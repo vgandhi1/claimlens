@@ -14,7 +14,7 @@ from claimlens.schema import RcaHandoff
 def _handoff(**overrides) -> RcaHandoff:
     base = dict(
         problem_statement="Recurring sync failure",
-        part_number="TCU-0420",
+        component="Telematics Control Unit",
         anomaly_label="cloud_sync",
         claim_count=3,
         share=0.5,
@@ -39,7 +39,7 @@ def test_post_five_why_requires_base_url():
 def test_post_five_why_success_sends_full_contract():
     handoff = RcaHandoff(
         problem_statement="Recurring sync failure",
-        part_number="TCU-0420",
+        component="Telematics Control Unit",
         anomaly_label="cloud_sync",
         claim_count=3,
         share=0.5,
@@ -60,11 +60,11 @@ def test_post_five_why_success_sends_full_contract():
         "problem_statement": "Recurring sync failure",
         "anomaly_label": "cloud_sync",
         "claim_count": 3,
-        "part_number": "TCU-0420",
+        "component": "Telematics Control Unit",
     }
 
 
-def test_post_five_why_omits_absent_part_number():
+def test_post_five_why_omits_absent_component():
     handoff = RcaHandoff(
         problem_statement="Recurring sync failure",
         anomaly_label="cloud_sync",
@@ -82,7 +82,7 @@ def test_post_five_why_omits_absent_part_number():
         post_five_why(handoff, base_url="http://localhost:8000", api_key="k")
 
     sent = post.call_args.kwargs["json"]
-    assert "part_number" not in sent
+    assert "component" not in sent
     assert sent["anomaly_label"] == "cloud_sync"
 
 
@@ -93,18 +93,16 @@ def test_execute_handoff_drives_all_target_endpoints():
     with patch("claimlens.qualitymind_client._post_json", side_effect=fake_post) as pj:
         results = execute_handoff(_handoff(), base_url="http://localhost:8000")
 
-    # Both declared endpoints attempted, each with the right body.
     assert set(results) == {"/quality/five-why", "/quality/draft-8d"}
     assert results["/quality/five-why"]["status"] == "ok"
     assert results["/quality/draft-8d"]["status"] == "ok"
-    # five-why carries full contract; draft-8d only problem_statement + part_number.
     five_why_body = results["/quality/five-why"]["response"]["payload"]
     assert five_why_body["anomaly_label"] == "cloud_sync"
     assert five_why_body["claim_count"] == 3
     draft_body = results["/quality/draft-8d"]["response"]["payload"]
     assert draft_body == {
         "problem_statement": "Recurring sync failure",
-        "part_number": "TCU-0420",
+        "component": "Telematics Control Unit",
     }
     assert pj.call_count == 2
 
@@ -144,28 +142,26 @@ def test_execute_handoff_skips_unknown_endpoint():
     assert results["/quality/bogus"]["status"] == "skipped"
 
 
-# --- SSRF URL validation (env-independent: IP-literal hosts) ----------------
-
 @pytest.mark.parametrize(
     "url",
     [
-        "http://127.0.0.1:8000",   # IPv4 loopback
-        "http://[::1]:8000",       # IPv6 loopback (is_reserved=True but safe)
-        "http://10.0.0.5:8000",    # private — internal QualityMind deployment
-        "http://[fd00::1]:8000",   # IPv6 ULA private
+        "http://127.0.0.1:8000",
+        "http://[::1]:8000",
+        "http://10.0.0.5:8000",
+        "http://[fd00::1]:8000",
     ],
 )
 def test_validate_url_allows_loopback_and_private(url):
-    _validate_url(url)  # must not raise
+    _validate_url(url)
 
 
 @pytest.mark.parametrize(
     "url",
     [
-        "http://169.254.169.254/",   # cloud metadata (SSRF) — is_private but link-local
-        "http://[fe80::1]/",         # IPv6 link-local
-        "http://[ff02::1]/",         # IPv6 multicast
-        "ftp://127.0.0.1/",          # disallowed scheme
+        "http://169.254.169.254/",
+        "http://[fe80::1]/",
+        "http://[ff02::1]/",
+        "ftp://127.0.0.1/",
     ],
 )
 def test_validate_url_blocks_ssrf_targets(url):

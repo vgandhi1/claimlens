@@ -172,8 +172,8 @@ flowchart TB
 Each record in a batch follows the same pipeline:
 
 ```
-narrative text (+ optional claim_id, part_number hint)
-    → extract_fields()     component, failure_mode, symptom, action, part_numbers
+narrative text (+ optional claim_id, source_type)
+    → extract_fields()     component, failure_mode, symptom, action_taken
     → AnomalyClassifier    label, confidence, is_overcycle, needs_review
     → AnalyzedClaim        single structured record
 ```
@@ -200,7 +200,7 @@ When overcycle anomalies dominate the batch, `build_handoff()` selects the top t
 | Field | Used by QualityMind for |
 |-------|-------------------------|
 | `problem_statement` | Seeds 5-Why chain and 8D D2 problem description |
-| `part_number` | PFMEA search, NCR history, SPC summary filters |
+| `component` | Descriptive name from extraction/trends — scopes RAG + agent context |
 | `anomaly_label` | Traceability back to CLaimLens taxonomy |
 | `claim_count`, `share` | Severity / priority context in RCA narrative |
 | `target_endpoints` | `/quality/five-why`, `/quality/draft-8d` |
@@ -343,7 +343,7 @@ curl -s -X POST http://localhost:8001/handoff/execute \
 Expected analytical outputs:
 
 - **`/trends`:** `by_label` Pareto, `overcycle_share`, component/failure-mode breakdown  
-- **`/handoff`:** `problem_statement`, `part_number`, `anomaly_label`, `claim_count`  
+- **`/handoff`:** `problem_statement`, `component`, `anomaly_label`, `claim_count`  
 - **`/handoff/execute`:** above + QualityMind `five-why` analysis with `structure_check` in dev  
 
 ---

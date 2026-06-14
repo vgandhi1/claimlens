@@ -18,7 +18,6 @@ class ClaimNarrative(BaseModel):
         description="Free-text claim or field note",
     )
     claim_id: Optional[str] = None
-    part_number: Optional[str] = None
     source_type: Optional[SourceType] = Field(
         default=None,
         description="Upstream stream (customer_complaint|dealer_ro|field_log)",
@@ -32,7 +31,6 @@ class ExtractedFields(BaseModel):
     failure_mode: Optional[str] = None
     symptom: Optional[str] = None
     action_taken: Optional[str] = None
-    part_numbers: list[str] = Field(default_factory=list)
 
 
 class ClassificationResult(BaseModel):
@@ -77,7 +75,7 @@ class RcaHandoff(BaseModel):
     """QualityMind-RAG-ready payload for the dominant overcycle trend."""
 
     problem_statement: str
-    part_number: Optional[str] = None
+    component: Optional[str] = None
     anomaly_label: str
     claim_count: int
     share: float = Field(..., ge=0.0, le=1.0)

@@ -61,7 +61,19 @@
   footer .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
   footer a{font-family:var(--mono);font-size:13px}
   .note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:10px}
-  @media(max-width:720px){.g3{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}.navlinks .hidem{display:none}}
+  .mrow{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
+  .chart{display:flex;flex-direction:column;gap:11px;padding-top:2px}
+  .chart .ct{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+  .crow{display:grid;grid-template-columns:96px 1fr 34px;align-items:center;gap:10px}
+  .crow .cl{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right}
+  .crow .track{position:relative;height:13px;background:var(--surface);border:1px solid var(--hair);border-radius:3px}
+  .crow .track i{position:absolute;left:0;top:0;height:100%;background:var(--accent);border-radius:3px}
+  .crow.macro .track i{background:var(--ink)}
+  .crow .cv{font-family:var(--mono);font-size:12px;color:var(--accent);text-align:right}
+  .crow.macro .cv{color:var(--ink);font-weight:600}
+  .crow .gate{position:absolute;top:-3px;bottom:-3px;left:88%;border-left:1px dashed var(--warn)}
+  .chart .cap{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:3px}
+  @media(max-width:720px){.g3{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}.mrow{grid-template-columns:1fr}.navlinks .hidem{display:none}}
 </style>
 </head>
 <body>
@@ -83,7 +95,8 @@
   <div class="meta">
     <span class="pill">Warranty-narrative NLP</span>
     <span class="pill">macro-F1 0.90 (measured)</span>
-    <span class="pill">21 tests · CI-gated</span>
+    <span class="pill">source-typed intake</span>
+    <span class="pill">66 tests · CI-gated</span>
     <span class="pill">feeds QualityMind 8D</span>
   </div>
 </div></header>
@@ -98,34 +111,47 @@
 <section id="approach"><div class="wrap">
   <div class="label">How it works</div>
   <h2>Extract → classify → trend → hand off</h2>
-  <div class="flow">Free-text claim / field note / equipment log
+  <div class="flow">Claim — tagged by source: customer complaint · dealer RO · field log
      │
      ├─► Extract   component · failure mode · symptom · action · part #   (rules)
+     │              source-aware: dealer RO → action · field log → overcycle
      ├─► Classify  overcycle anomaly: Soft Reset · Cloud Sync · …         (TF-IDF + LogReg)
-     └─► Aggregate Pareto by label / component / failure mode
+     └─► Aggregate Pareto by label / component / failure mode / source
                     │
                     ▼
             /handoff → QualityMind-RAG 5-Why / 8D problem_statement</div>
   <div class="grid g3" style="margin-top:26px">
-    <div class="cell"><span class="tag">Extract</span><h3>Structured fields</h3><p>Regex + domain gazetteers pull component, failure mode, symptom, action and part numbers — zero model download.</p></div>
-    <div class="cell"><span class="tag">Classify</span><h3>Overcycle anomaly</h3><p>TF-IDF + balanced logistic regression, reproducible (seed 42), transformer-swappable behind one class.</p></div>
-    <div class="cell"><span class="tag">Hand off</span><h3>RCA bridge</h3><p>Dominant trend becomes a QualityMind-ready 8D / 5-Why payload — the bridge from narrative to corrective action.</p></div>
+    <div class="cell"><span class="tag">Intake</span><h3>Source-typed</h3><p>Each narrative is tagged customer complaint, dealer RO or field log — driving a by-source Pareto and per-stream extraction emphasis. Regex + gazetteers, zero model download.</p></div>
+    <div class="cell"><span class="tag">Classify</span><h3>Overcycle anomaly</h3><p>TF-IDF + balanced logistic regression over a locked 5-label taxonomy, reproducible (seed 42); low-confidence (&lt;0.55) flagged <span style="font-family:var(--mono);font-size:13px">needs_review</span>.</p></div>
+    <div class="cell"><span class="tag">Hand off</span><h3>RCA bridge</h3><p>Dominant trend becomes a QualityMind-ready 8D / 5-Why payload, POSTed through an SSRF-guarded client — narrative to corrective action.</p></div>
   </div>
 </div></section>
 
 <section id="metrics"><div class="wrap">
   <div class="label">Measured, not asserted</div>
   <h2>macro-F1 0.90 on 1,200 narratives</h2>
-  <table>
-    <tr><th>Class</th><th style="text-align:right">Precision</th><th style="text-align:right">Recall</th><th style="text-align:right">F1</th></tr>
-    <tr><td>Soft Reset</td><td class="num">0.86</td><td class="num">0.91</td><td class="num">0.88</td></tr>
-    <tr><td>Cloud Sync</td><td class="num">0.92</td><td class="num">0.89</td><td class="num">0.91</td></tr>
-    <tr><td>Connectivity Loss</td><td class="num">0.91</td><td class="num">0.96</td><td class="num">0.94</td></tr>
-    <tr><td>Power Cycle</td><td class="num">0.88</td><td class="num">0.84</td><td class="num">0.86</td></tr>
-    <tr><td>No Fault Found</td><td class="num">0.92</td><td class="num">0.91</td><td class="num">0.91</td></tr>
-    <tr class="tot"><td>macro avg</td><td class="num">0.90</td><td class="num">0.90</td><td class="num">0.90</td></tr>
-  </table>
-  <p class="body mut" style="margin-top:20px">Stratified 75/25 split, produced by <span style="font-family:var(--mono);font-size:14px">evaluate.py</span>. The synthetic corpus injects ~18% ambiguous / blended hard cases on purpose, so the score reflects real field-note messiness — not a separable toy set.</p>
+  <div class="mrow">
+    <table>
+      <tr><th>Class</th><th style="text-align:right">Precision</th><th style="text-align:right">Recall</th><th style="text-align:right">F1</th></tr>
+      <tr><td>Soft Reset</td><td class="num">0.83</td><td class="num">0.84</td><td class="num">0.83</td></tr>
+      <tr><td>Cloud Sync</td><td class="num">0.91</td><td class="num">0.87</td><td class="num">0.89</td></tr>
+      <tr><td>Connectivity Loss</td><td class="num">0.88</td><td class="num">0.95</td><td class="num">0.91</td></tr>
+      <tr><td>Power Cycle</td><td class="num">0.96</td><td class="num">0.94</td><td class="num">0.95</td></tr>
+      <tr><td>No Fault Found</td><td class="num">0.90</td><td class="num">0.88</td><td class="num">0.89</td></tr>
+      <tr class="tot"><td>macro avg</td><td class="num">0.90</td><td class="num">0.90</td><td class="num">0.90</td></tr>
+    </table>
+    <div class="chart">
+      <div class="ct">Per-class F1</div>
+      <div class="crow"><span class="cl">Soft Reset</span><div class="track"><i style="width:83%"></i><span class="gate"></span></div><span class="cv">0.83</span></div>
+      <div class="crow"><span class="cl">Cloud Sync</span><div class="track"><i style="width:89%"></i><span class="gate"></span></div><span class="cv">0.89</span></div>
+      <div class="crow"><span class="cl">Conn. Loss</span><div class="track"><i style="width:91%"></i><span class="gate"></span></div><span class="cv">0.91</span></div>
+      <div class="crow"><span class="cl">Power Cycle</span><div class="track"><i style="width:95%"></i><span class="gate"></span></div><span class="cv">0.95</span></div>
+      <div class="crow"><span class="cl">No Fault</span><div class="track"><i style="width:89%"></i><span class="gate"></span></div><span class="cv">0.89</span></div>
+      <div class="crow macro"><span class="cl">macro avg</span><div class="track"><i style="width:90%"></i><span class="gate"></span></div><span class="cv">0.90</span></div>
+      <div class="cap">scale 0–1.0 · dashed line = 0.88 macro-F1 gate</div>
+    </div>
+  </div>
+  <p class="body mut" style="margin-top:22px">Stratified 75/25 split, produced by <span style="font-family:var(--mono);font-size:14px">evaluate.py</span> — which also writes a confusion matrix, per-label recall and an overcycle-recall summary to <span style="font-family:var(--mono);font-size:14px">metrics.json</span>. The synthetic corpus mirrors published automotive-warranty theme frequencies (infotainment / OTA / cloud-sync dominant, with battery-range and key-fob / USB edge cases) and injects ~18% ambiguous / blended hard cases on purpose, so the score reflects real field-note messiness — not a separable toy set.</p>
 </div></section>
 
 <section><div class="wrap">

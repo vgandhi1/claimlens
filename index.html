@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ClaimLens — Presentation</title>
+<meta name="description" content="Warranty-narrative NLP that turns free-text field claims into structured failure trends and overcycle-anomaly classes for RCA." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#faf8f3; --surface:rgba(27,26,22,.035); --border:#e3dfd3; --hair:#d8d3c5;
+    --text:#1b1a16; --muted:#6f6b61; --faint:#9a9488; --accent:#b23a1e; --accent-deep:#8f2c14;
+    --warn:#b06a0c; --ink:#18170f;
+    --display:"Fraunces",Georgia,serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+    --body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--text);font-family:var(--body);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 28px}
+  a{color:var(--accent);text-decoration:none} a:hover{color:var(--accent-deep)}
+  nav{position:sticky;top:0;z-index:20;background:rgba(250,248,243,.88);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:58px}
+  .brand{font-family:var(--mono);font-size:14px;color:var(--text)} .brand b{color:var(--accent);font-weight:500}
+  .navlinks{display:flex;gap:6px}
+  .navlinks a{font-family:var(--mono);font-size:12px;color:var(--muted);padding:6px 10px;border-radius:4px}
+  .navlinks a:hover{background:var(--surface);color:var(--text)}
+  .cta{background:var(--accent);color:var(--paper)!important;padding:6px 12px} .cta:hover{background:var(--accent-deep)}
+  header{padding:88px 0 56px;border-bottom:1px solid var(--border)}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+  h1{font-family:var(--display);font-weight:500;font-size:clamp(38px,6vw,68px);line-height:1.02;letter-spacing:-.02em;margin:14px 0 18px}
+  h1 span{color:var(--accent)}
+  .lede{font-size:clamp(18px,2.2vw,22px);color:var(--muted);max-width:64ch}
+  .meta{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px}
+  .pill{font-family:var(--mono);font-size:12px;color:var(--muted);border:1px solid var(--hair);border-radius:999px;padding:5px 12px}
+  section{padding:60px 0;border-bottom:1px solid var(--border)}
+  .label{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:18px}
+  h2{font-family:var(--display);font-weight:500;font-size:clamp(26px,3.4vw,38px);letter-spacing:-.01em;margin-bottom:18px}
+  p.body{font-size:18px;color:var(--text);max-width:70ch;margin-bottom:14px} p.body.mut{color:var(--muted)}
+  .grid{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .cell{background:var(--paper);padding:22px}
+  .cell h3{font-family:var(--display);font-weight:500;font-size:20px;margin-bottom:8px}
+  .cell p{font-size:15px;color:var(--muted)}
+  .cell .tag{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase}
+  .flow{font-family:var(--mono);font-size:13px;line-height:1.9;background:var(--ink);color:var(--paper);border-radius:8px;padding:24px 26px;overflow-x:auto;white-space:pre}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .metric{background:var(--paper);padding:24px 18px;text-align:center}
+  .metric .n{font-family:var(--display);font-size:34px;color:var(--accent);line-height:1}
+  .metric .l{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:.04em}
+  .stack{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-family:var(--mono);font-size:12px;color:var(--text);background:var(--surface);border:1px solid var(--hair);border-radius:5px;padding:6px 11px}
+  table{width:100%;border-collapse:collapse;font-size:15px;max-width:560px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--hair)}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  td.num{font-family:var(--mono);color:var(--accent);text-align:right}
+  tr.tot td{font-weight:600;border-bottom:none}
+  footer{padding:48px 0 64px}
+  footer .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+  footer a{font-family:var(--mono);font-size:13px}
+  .note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:10px}
+  .mrow{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
+  .chart{display:flex;flex-direction:column;gap:11px;padding-top:2px}
+  .chart .ct{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+  .crow{display:grid;grid-template-columns:96px 1fr 34px;align-items:center;gap:10px}
+  .crow .cl{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right}
+  .crow .track{position:relative;height:13px;background:var(--surface);border:1px solid var(--hair);border-radius:3px}
+  .crow .track i{position:absolute;left:0;top:0;height:100%;background:var(--accent);border-radius:3px}
+  .crow.macro .track i{background:var(--ink)}
+  .crow .cv{font-family:var(--mono);font-size:12px;color:var(--accent);text-align:right}
+  .crow.macro .cv{color:var(--ink);font-weight:600}
+  .crow .gate{position:absolute;top:-3px;bottom:-3px;left:88%;border-left:1px dashed var(--warn)}
+  .chart .cap{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:3px}
+  @media(max-width:720px){.g3{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}.mrow{grid-template-columns:1fr}.navlinks .hidem{display:none}}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">vinay<b>.</b>gandhi / field-quality</div>
+  <div class="navlinks">
+    <a class="hidem" href="#problem">Problem</a>
+    <a class="hidem" href="#approach">Approach</a>
+    <a class="hidem" href="#metrics">Results</a>
+    <a class="cta" href="https://github.com/vgandhi1/claimlens">Repo ↗</a>
+  </div>
+</div></nav>
+
+<header><div class="wrap">
+  <div class="kicker">NLP · field narrative analytics</div>
+  <h1>Claim<span>Lens</span></h1>
+  <p class="lede">Free-text warranty claims and field notes in. Structured failure trends and overcycle-anomaly classes out — so the next 5-Why / 8D starts from data, not a spreadsheet search.</p>
+  <div class="meta">
+    <span class="pill">Warranty-narrative NLP</span>
+    <span class="pill">macro-F1 0.90 (measured)</span>
+    <span class="pill">source-typed intake</span>
+    <span class="pill">66 tests · CI-gated</span>
+    <span class="pill">feeds QualityMind 8D</span>
+  </div>
+</div></header>
+
+<section id="problem"><div class="wrap">
+  <div class="label">The problem</div>
+  <h2>The signal is buried in prose</h2>
+  <p class="body">In commercial-vehicle field quality, the slowest step of root-cause analysis is reading thousands of free-text warranty claims, field-service narratives and equipment logs to figure out <b>what is actually failing, and how often.</b></p>
+  <p class="body mut">A large share of those returns are <b>overcycle anomalies</b> — repeated abnormal device cycling (soft resets, cloud-sync failures, power cycles) — that look like hardware faults but aren't. Telling them apart by hand is slow and inconsistent.</p>
+</div></section>
+
+<section id="approach"><div class="wrap">
+  <div class="label">How it works</div>
+  <h2>Extract → classify → trend → hand off</h2>
+  <div class="flow">Claim — tagged by source: customer complaint · dealer RO · field log
+     │
+     ├─► Extract   component · failure mode · symptom · action · part #   (rules)
+     │              source-aware: dealer RO → action · field log → overcycle
+     ├─► Classify  overcycle anomaly: Soft Reset · Cloud Sync · …         (TF-IDF + LogReg)
+     └─► Aggregate Pareto by label / component / failure mode / source
+                    │
+                    ▼
+            /handoff → QualityMind-RAG 5-Why / 8D problem_statement</div>
+  <div class="grid g3" style="margin-top:26px">
+    <div class="cell"><span class="tag">Intake</span><h3>Source-typed</h3><p>Each narrative is tagged customer complaint, dealer RO or field log — driving a by-source Pareto and per-stream extraction emphasis. Regex + gazetteers, zero model download.</p></div>
+    <div class="cell"><span class="tag">Classify</span><h3>Overcycle anomaly</h3><p>TF-IDF + balanced logistic regression over a locked 5-label taxonomy, reproducible (seed 42); low-confidence (&lt;0.55) flagged <span style="font-family:var(--mono);font-size:13px">needs_review</span>.</p></div>
+    <div class="cell"><span class="tag">Hand off</span><h3>RCA bridge</h3><p>Dominant trend becomes a QualityMind-ready 8D / 5-Why payload, POSTed through an SSRF-guarded client — narrative to corrective action.</p></div>
+  </div>
+</div></section>
+
+<section id="metrics"><div class="wrap">
+  <div class="label">Measured, not asserted</div>
+  <h2>macro-F1 0.90 on 1,200 narratives</h2>
+  <div class="mrow">
+    <table>
+      <tr><th>Class</th><th style="text-align:right">Precision</th><th style="text-align:right">Recall</th><th style="text-align:right">F1</th></tr>
+      <tr><td>Soft Reset</td><td class="num">0.83</td><td class="num">0.84</td><td class="num">0.83</td></tr>
+      <tr><td>Cloud Sync</td><td class="num">0.91</td><td class="num">0.87</td><td class="num">0.89</td></tr>
+      <tr><td>Connectivity Loss</td><td class="num">0.88</td><td class="num">0.95</td><td class="num">0.91</td></tr>
+      <tr><td>Power Cycle</td><td class="num">0.96</td><td class="num">0.94</td><td class="num">0.95</td></tr>
+      <tr><td>No Fault Found</td><td class="num">0.90</td><td class="num">0.88</td><td class="num">0.89</td></tr>
+      <tr class="tot"><td>macro avg</td><td class="num">0.90</td><td class="num">0.90</td><td class="num">0.90</td></tr>
+    </table>
+    <div class="chart">
+      <div class="ct">Per-class F1</div>
+      <div class="crow"><span class="cl">Soft Reset</span><div class="track"><i style="width:83%"></i><span class="gate"></span></div><span class="cv">0.83</span></div>
+      <div class="crow"><span class="cl">Cloud Sync</span><div class="track"><i style="width:89%"></i><span class="gate"></span></div><span class="cv">0.89</span></div>
+      <div class="crow"><span class="cl">Conn. Loss</span><div class="track"><i style="width:91%"></i><span class="gate"></span></div><span class="cv">0.91</span></div>
+      <div class="crow"><span class="cl">Power Cycle</span><div class="track"><i style="width:95%"></i><span class="gate"></span></div><span class="cv">0.95</span></div>
+      <div class="crow"><span class="cl">No Fault</span><div class="track"><i style="width:89%"></i><span class="gate"></span></div><span class="cv">0.89</span></div>
+      <div class="crow macro"><span class="cl">macro avg</span><div class="track"><i style="width:90%"></i><span class="gate"></span></div><span class="cv">0.90</span></div>
+      <div class="cap">scale 0–1.0 · dashed line = 0.88 macro-F1 gate</div>
+    </div>
+  </div>
+  <p class="body mut" style="margin-top:22px">Stratified 75/25 split, produced by <span style="font-family:var(--mono);font-size:14px">evaluate.py</span> — which also writes a confusion matrix, per-label recall and an overcycle-recall summary to <span style="font-family:var(--mono);font-size:14px">metrics.json</span>. The synthetic corpus mirrors published automotive-warranty theme frequencies (infotainment / OTA / cloud-sync dominant, with battery-range and key-fob / USB edge cases) and injects ~18% ambiguous / blended hard cases on purpose, so the score reflects real field-note messiness — not a separable toy set.</p>
+</div></section>
+
+<section><div class="wrap">
+  <div class="label">Stack</div>
+  <h2>Built with</h2>
+  <div class="stack">
+    <span class="chip">Python 3.10+</span><span class="chip">scikit-learn</span><span class="chip">TF-IDF + LogReg</span>
+    <span class="chip">FastAPI</span><span class="chip">Pydantic</span><span class="chip">pytest</span><span class="chip">ruff</span><span class="chip">GitHub Actions</span>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <div class="row">
+    <div>
+      <div class="brand" style="font-size:15px">Claim<b>Lens</b></div>
+      <div class="note">Front end to QualityMind-RAG — narrative → structured signal → corrective action.</div>
+    </div>
+    <div style="display:flex;gap:18px">
+      <a href="https://github.com/vgandhi1/claimlens">GitHub ↗</a>
+      <a href="https://github.com/vgandhi1/QualityMind-RAG">QualityMind ↗</a>
+      <a href="https://vgandhi1.github.io">Portfolio ↗</a>
+    </div>
+  </div>
+</div></footer>
+
+</body>
+</html>

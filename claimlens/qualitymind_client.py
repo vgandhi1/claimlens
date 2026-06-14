@@ -51,6 +51,14 @@ def _validate_url(url_base: str) -> None:
             ip = ipaddress.ip_address(addr)
         except ValueError:
             continue
+        # Loopback is safe and required for local QualityMind. Check it first:
+        # IPv6 ::1 also has is_reserved=True, so without this it would be blocked
+        # by the reserved check below. Do NOT widen this to is_private — the cloud
+        # metadata IP 169.254.169.254 and fe80::/10 link-local are is_private=True
+        # but must stay blocked (SSRF). Private ranges (10/8, fd00::/8) already
+        # pass since they are not link-local / reserved / multicast.
+        if ip.is_loopback:
+            continue
         if ip.is_link_local or ip.is_reserved or ip.is_multicast:
             raise QualityMindClientError(
                 f"QUALITYMIND_BASE_URL resolves to a disallowed address ({addr})"

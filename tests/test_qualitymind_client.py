@@ -4,6 +4,7 @@ import pytest
 
 from claimlens.qualitymind_client import (
     QualityMindClientError,
+    _validate_url,
     execute_handoff,
     post_five_why,
 )
@@ -141,3 +142,32 @@ def test_execute_handoff_skips_unknown_endpoint():
 
     assert results["/quality/five-why"]["status"] == "ok"
     assert results["/quality/bogus"]["status"] == "skipped"
+
+
+# --- SSRF URL validation (env-independent: IP-literal hosts) ----------------
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://127.0.0.1:8000",   # IPv4 loopback
+        "http://[::1]:8000",       # IPv6 loopback (is_reserved=True but safe)
+        "http://10.0.0.5:8000",    # private — internal QualityMind deployment
+        "http://[fd00::1]:8000",   # IPv6 ULA private
+    ],
+)
+def test_validate_url_allows_loopback_and_private(url):
+    _validate_url(url)  # must not raise
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://169.254.169.254/",   # cloud metadata (SSRF) — is_private but link-local
+        "http://[fe80::1]/",         # IPv6 link-local
+        "http://[ff02::1]/",         # IPv6 multicast
+        "ftp://127.0.0.1/",          # disallowed scheme
+    ],
+)
+def test_validate_url_blocks_ssrf_targets(url):
+    with pytest.raises(QualityMindClientError):
+        _validate_url(url)

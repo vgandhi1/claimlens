@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from claimlens.anomaly import SourceType
 from claimlens.classify import AnomalyClassifier
 from claimlens.extract import extract_fields
 from claimlens.schema import AnalyzedClaim
@@ -12,12 +13,16 @@ def analyze_one(
     classifier: AnomalyClassifier,
     claim_id: Optional[str] = None,
     part_number: Optional[str] = None,
+    source_type: Optional[SourceType] = None,
 ) -> AnalyzedClaim:
     return AnalyzedClaim(
         claim_id=claim_id,
         narrative=narrative,
         classification=classifier.predict(narrative),
-        extracted=extract_fields(narrative, part_number_hint=part_number),
+        extracted=extract_fields(
+            narrative, part_number_hint=part_number, source_type=source_type
+        ),
+        source_type=source_type,
     )
 
 
@@ -34,7 +39,12 @@ def analyze_batch(
             claim_id=r.get("claim_id"),
             narrative=r["narrative"],
             classification=classification,
-            extracted=extract_fields(r["narrative"], part_number_hint=r.get("part_number")),
+            extracted=extract_fields(
+                r["narrative"],
+                part_number_hint=r.get("part_number"),
+                source_type=r.get("source_type"),
+            ),
+            source_type=r.get("source_type"),
         )
         for r, classification in zip(records, classifications)
     ]

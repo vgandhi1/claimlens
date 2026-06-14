@@ -9,7 +9,8 @@ def test_predicts_soft_reset(trained_classifier):
     assert res.label == SOFT_RESET
     assert res.is_overcycle is True
     assert 0.0 <= res.confidence <= 1.0
-    assert abs(sum(res.scores.values()) - 1.0) < 1e-6
+    # scores are rounded to 4 dp for display, so allow rounding-scale slack.
+    assert abs(sum(res.scores.values()) - 1.0) < 1e-3
 
 
 def test_predicts_cloud_sync(trained_classifier):

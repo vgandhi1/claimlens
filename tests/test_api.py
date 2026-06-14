@@ -74,6 +74,49 @@ def test_trends_rejects_empty():
     assert client.post("/trends", json=[]).status_code == 400
 
 
+def test_analyze_echoes_source_type():
+    r = client.post("/analyze", json={
+        "narrative": "TCU fails to sync to cloud after update",
+        "source_type": "field_log",
+    })
+    assert r.status_code == 200
+    assert r.json()["source_type"] == "field_log"
+
+
+def test_analyze_rejects_bad_source_type():
+    r = client.post("/analyze", json={
+        "narrative": "gateway offline overnight",
+        "source_type": "warranty_email",
+    })
+    assert r.status_code == 422
+
+
+def test_trends_includes_by_source():
+    payload = [
+        {"narrative": "soft reset repeatedly watchdog reboot", "source_type": "field_log"},
+        {"narrative": "gateway fails to sync to cloud retries exhausted", "source_type": "field_log"},
+        {"narrative": "no fault found, bench test passed"},
+    ]
+    r = client.post("/trends", json=payload)
+    assert r.status_code == 200
+    by_source = {b["key"]: b["count"] for b in r.json()["by_source"]}
+    assert by_source["field_log"] == 2
+    assert by_source["Unknown"] == 1
+
+
+def test_handoff_payload_unchanged_by_source_type():
+    """source_type must not leak into the cross-project handoff contract."""
+    base = [
+        {"narrative": "soft reset repeatedly watchdog reboot"},
+        {"narrative": "soft reset again after ignition cycle"},
+    ]
+    typed = [{**r, "source_type": "field_log"} for r in base]
+    rb = client.post("/handoff", json=base).json()
+    rt = client.post("/handoff", json=typed).json()
+    assert rb == rt
+    assert "source_type" not in rt
+
+
 def test_handoff_returns_payload():
     payload = [
         {"narrative": "soft reset repeatedly watchdog reboot"},

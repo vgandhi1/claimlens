@@ -7,7 +7,7 @@
 
 **Portfolio area:** Quality Engineering · TEXT / NARRATIVE PATH  
 **Projects:** CLaimLens (this repo) → [QualityMind-RAG](https://github.com/vgandhi1/QualityMind-RAG)  
-**Guardrails:** Quality Engineering AI Guardrails (`QUALITY-ENGG-GUARDRAILS.md`, portfolio-level — binding for all design and implementation)  
+**Guardrails:** Quality Systems AI Guardrails (`QUALITY-SYSTEMS-GUARDRAILS.md`, portfolio-level — binding for all design and implementation)  
 **Phase:** Dev / analytical models only — not production-ready  
 **Last updated:** June 2026
 
@@ -96,7 +96,7 @@ Low confidence / SOH mismatch   →     needs_review queue (human-in-the-loop)
 
 **Dev implication:** Synthetic datasets in CLaimLens should **mirror published theme frequencies** (infotainment/OTA/cloud sync, battery range disputes, key-fob/USB edge cases) rather than generic “part failed” sentences — so `/trends` and handoff demos reflect realistic Pareto shapes from the literature above.
 
-**Out of scope for TEXT path (documented elsewhere):** Vision/damage triage (AutoClaim-VLM), live fleet telematics ingestion pipelines, and production warranty ERP integration — see [QUALITY-ENGG-GUARDRAILS.md](QUALITY-ENGG-GUARDRAILS.md).
+**Out of scope for TEXT path (documented elsewhere):** Vision/damage triage (AutoClaim-VLM), live fleet telematics ingestion pipelines, and production warranty ERP integration — see [QUALITY-SYSTEMS-GUARDRAILS.md](QUALITY-SYSTEMS-GUARDRAILS.md).
 
 ---
 
@@ -207,7 +207,7 @@ When overcycle anomalies dominate the batch, `build_handoff()` selects the top t
 
 **Live integration (dev):** `POST /handoff/execute` on CLaimLens calls QualityMind `POST /quality/five-why` via `qualitymind_client.py` (SSRF allowlist per guardrails).
 
-**Guardrail:** Handoff schema is a cross-project contract — changes require updating both repos simultaneously ([QUALITY-ENGG-GUARDRAILS.md § CLaimLens Handoff contract](QUALITY-ENGG-GUARDRAILS.md)).
+**Guardrail:** Handoff schema is a cross-project contract — changes require updating both repos simultaneously ([QUALITY-SYSTEMS-GUARDRAILS.md § CLaimLens Handoff contract](QUALITY-SYSTEMS-GUARDRAILS.md)).
 
 ---
 
@@ -296,7 +296,7 @@ All AI outputs in this path require engineer review before plant or engineering 
 
 ## Dev environment setup (local demo)
 
-Per [QUALITY-ENGG-GUARDRAILS.md § Dev environment defaults](QUALITY-ENGG-GUARDRAILS.md): `ENVIRONMENT=development`, optional auth disabled locally.
+Per [QUALITY-SYSTEMS-GUARDRAILS.md § Dev environment defaults](QUALITY-SYSTEMS-GUARDRAILS.md): `ENVIRONMENT=development`, optional auth disabled locally.
 
 ### Terminal 1 — QualityMind-RAG
 
@@ -400,7 +400,7 @@ These require explicit design + guardrail updates before implementation:
 
 | Document | Role |
 |----------|------|
-| [QUALITY-ENGG-GUARDRAILS.md](QUALITY-ENGG-GUARDRAILS.md) | Binding AI, security, and testing rules |
+| [QUALITY-SYSTEMS-GUARDRAILS.md](QUALITY-SYSTEMS-GUARDRAILS.md) | Binding AI, security, and testing rules |
 | [CLaimLens/README.md](CLaimLens/README.md) | NLP pipeline API reference |
 | [QualityMind-RAG/README.md](QualityMind-RAG/README.md) | RAG, Text-to-SQL, LangGraph agent reference |
 
@@ -412,4 +412,4 @@ The **Text / Narrative Path** turns high-volume automotive warranty text — cus
 
 CLaimLens answers *“what is failing, how often, and on which component?”* QualityMind answers *“why, according to our PFMEA/CAPA/NCR history, and what corrective action draft fits?”*  
 
-Stay within [QUALITY-ENGG-GUARDRAILS.md](QUALITY-ENGG-GUARDRAILS.md): synthetic data in dev, human review before action, validated agent/VLM outputs, and a stable handoff contract between the two repos.
+Stay within [QUALITY-SYSTEMS-GUARDRAILS.md](QUALITY-SYSTEMS-GUARDRAILS.md): synthetic data in dev, human review before action, validated agent/VLM outputs, and a stable handoff contract between the two repos.

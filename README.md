@@ -146,7 +146,7 @@ curl -X POST localhost:8000/handoff \
   -d '[{"narrative":"TCU-0421 soft resets every ignition, watchdog reboot"},
        {"narrative":"TCU-0421 spontaneously reboots repeatedly, self-recovers"}]'
 # -> {"problem_statement":"Recurring spontaneous reboot on Telematics Control Unit (Soft Reset) — 2 field claims, 100% of analyzed returns",
-#     "part_number":"TCU-0421","anomaly_label":"soft_reset","target_endpoints":["/quality/five-why","/quality/draft-8d"]}
+#     "component":"Telematics Control Unit","anomaly_label":"soft_reset","target_endpoints":["/quality/five-why","/quality/draft-8d"]}
 ```
 
 ---

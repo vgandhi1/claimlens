@@ -51,12 +51,10 @@ def test_analyze_endpoint_returns_extraction():
 def test_extract_endpoint():
     r = client.post("/extract", json={
         "narrative": "gateway fails to sync",
-        "part_number": "GW-0099",
     })
     assert r.status_code == 200
     body = r.json()
     assert body["component"] == "Connectivity Gateway"
-    assert "GW-0099" in body["part_numbers"]
 
 
 def test_trends_endpoint():

@@ -166,7 +166,6 @@ def _row(rng: random.Random, idx: int, start: date, noise: float, label: str) ->
         "claim_id": f"WC-{idx:06d}",
         "date": (start + timedelta(days=rng.randint(0, 364))).isoformat(),
         "vin": f"1FT{rng.randint(10**11, 10**12 - 1)}",
-        "part_number": part,
         "component": comp_name,
         "narrative": narrative,
         "label": label,

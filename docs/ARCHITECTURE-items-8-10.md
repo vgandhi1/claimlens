@@ -18,7 +18,7 @@ claimlens/
   schema.py     ClaimNarrative, ExtractedFields, ClassificationResult,
                 AnalyzedClaim, TrendBucket, TrendReport, RcaHandoff(+Response)
   anomaly.py    LABELS, LABEL_NAMES, OVERCYCLE_LABELS = {soft_reset, cloud_sync, power_cycle}
-  extract.py    extract_fields(narrative, part_number_hint) — regex + gazetteers
+  extract.py    extract_fields(narrative, source_type) — gazetteers → component name
   classify.py   AnomalyClassifier (TF-IDF + LogReg)
   pipeline.py   analyze_one / analyze_batch (record dicts -> AnalyzedClaim)
   trends.py     build_trend_report -> by_label / by_component / by_failure_mode
@@ -68,14 +68,14 @@ input. `str` base keeps JSON output unchanged for downstream.
 
 ### 8.4 `api.py` — populate the record dict
 In `/analyze`, `/trends`, `/handoff` the record dict already carries
-`narrative/claim_id/part_number`; add `"source_type": c.source_type`. `/handoff` passes
+`narrative/claim_id/source_type`. `/handoff` passes descriptive `component` only.
 it through `analyze_batch` but `build_handoff` ignores it → handoff payload unchanged
 (contract preserved). `/classify` and `/extract` need no source routing unless emphasis
 is wanted on the single-shot `/extract`; recommend also passing
 `source_type=claim.source_type` into `/extract`'s `extract_fields` call for consistency.
 
 ### 8.5 `extract.py` — per-stream emphasis (regex-first, deterministic)
-Signature: `extract_fields(narrative, part_number_hint=None, source_type=None)`.
+Signature: `extract_fields(narrative, source_type=None)`.
 
 - **dealer_ro → emphasize `action_taken`:** when `source_type == dealer_ro` and the base
   `_first_match(text, _ACTIONS)` returns `None`, apply an extended dealer-RO action

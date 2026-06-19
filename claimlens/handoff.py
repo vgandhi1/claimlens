@@ -4,8 +4,8 @@ into a QualityMind-RAG-ready payload.
 
 This is the "feeding Pareto failure analysis directly into 5-Why/8D" step —
 ClaimLens picks the top overcycle trend and emits the exact `problem_statement`
-(+ `part_number`) that QualityMind's `/quality/five-why` and `/quality/draft-8d`
-endpoints consume.
+(+ descriptive `component` from upstream extraction) that QualityMind's
+`/quality/five-why` and `/quality/draft-8d` endpoints consume.
 """
 
 from collections import Counter
@@ -20,12 +20,24 @@ def _top(values, default: Optional[str] = None) -> Optional[str]:
     return counts.most_common(1)[0][0] if counts else default
 
 
-def build_handoff(claims: list[AnalyzedClaim]) -> Optional[RcaHandoff]:
+def build_handoff(
+    claims: list[AnalyzedClaim],
+    exclude_needs_review: bool = False,
+) -> Optional[RcaHandoff]:
     """Pick the dominant overcycle trend → QualityMind-ready RCA payload.
 
     Returns None when there are no overcycle anomalies to escalate.
+
+    When ``exclude_needs_review`` is True, low-confidence claims flagged
+    ``classification.needs_review`` are dropped before trend selection — the
+    guardrail "triage before RCA" so unreviewed claims do not skew the Pareto
+    or seed a 5-Why/8D on a mislabeled trend.
     """
-    overcycle = [c for c in claims if c.classification.label in OVERCYCLE_LABELS]
+    candidates = claims
+    if exclude_needs_review:
+        candidates = [c for c in claims if not c.classification.needs_review]
+
+    overcycle = [c for c in candidates if c.classification.label in OVERCYCLE_LABELS]
     if not overcycle:
         return None
 
@@ -34,12 +46,9 @@ def build_handoff(claims: list[AnalyzedClaim]) -> Optional[RcaHandoff]:
 
     component = _top((c.extracted.component for c in in_label), "telematics unit")
     failure_mode = _top((c.extracted.failure_mode for c in in_label), "anomaly")
-    part_number = _top(
-        pn for c in in_label for pn in c.extracted.part_numbers
-    )
 
     count = len(in_label)
-    share = round(count / len(claims), 4)
+    share = round(count / len(candidates), 4)
     label_name = LABEL_NAMES.get(top_label, top_label)
 
     problem_statement = (
@@ -50,7 +59,7 @@ def build_handoff(claims: list[AnalyzedClaim]) -> Optional[RcaHandoff]:
 
     return RcaHandoff(
         problem_statement=problem_statement,
-        part_number=part_number,
+        component=component,
         anomaly_label=top_label,
         claim_count=count,
         share=share,

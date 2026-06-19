@@ -172,8 +172,8 @@ flowchart TB
 Each record in a batch follows the same pipeline:
 
 ```
-narrative text (+ optional claim_id, part_number hint)
-    → extract_fields()     component, failure_mode, symptom, action, part_numbers
+narrative text (+ optional claim_id, source_type)
+    → extract_fields()     component, failure_mode, symptom, action_taken
     → AnomalyClassifier    label, confidence, is_overcycle, needs_review
     → AnalyzedClaim        single structured record
 ```
@@ -200,7 +200,7 @@ When overcycle anomalies dominate the batch, `build_handoff()` selects the top t
 | Field | Used by QualityMind for |
 |-------|-------------------------|
 | `problem_statement` | Seeds 5-Why chain and 8D D2 problem description |
-| `part_number` | PFMEA search, NCR history, SPC summary filters |
+| `component` | Descriptive name from extraction/trends — scopes RAG + agent context |
 | `anomaly_label` | Traceability back to CLaimLens taxonomy |
 | `claim_count`, `share` | Severity / priority context in RCA narrative |
 | `target_endpoints` | `/quality/five-why`, `/quality/draft-8d` |
@@ -229,7 +229,7 @@ When overcycle anomalies dominate the batch, `build_handoff()` selects the top t
 | `POST /handoff` | Build RCA payload only | Same batch as `/trends`; requires ≥1 overcycle anomaly |
 | `POST /handoff/execute` | Payload + call QualityMind | Same; QualityMind must be running locally |
 
-Production batch caps and payload limits are deferred until analytical baselines are proven (see [quality-feedback.md](quality-feedback.md)).
+Production batch caps and payload limits are deferred until analytical baselines are proven.
 
 ---
 
@@ -343,7 +343,7 @@ curl -s -X POST http://localhost:8001/handoff/execute \
 Expected analytical outputs:
 
 - **`/trends`:** `by_label` Pareto, `overcycle_share`, component/failure-mode breakdown  
-- **`/handoff`:** `problem_statement`, `part_number`, `anomaly_label`, `claim_count`  
+- **`/handoff`:** `problem_statement`, `component`, `anomaly_label`, `claim_count`  
 - **`/handoff/execute`:** above + QualityMind `five-why` analysis with `structure_check` in dev  
 
 ---
@@ -376,7 +376,7 @@ Before production, the narrative path should demonstrate in dev:
 | Plant-relevant SQL answers | — | ⏳ Text-to-SQL on quality DB seed data | — |
 | Engineer review loop documented | ✅ this doc | ✅ guardrails | — |
 
-Track implementation status in [quality-feedback.md](quality-feedback.md).
+Track implementation status in the portfolio's Publisher → Subscriber simulation guide (Implementation review section).
 
 ---
 
@@ -401,7 +401,6 @@ These require explicit design + guardrail updates before implementation:
 | Document | Role |
 |----------|------|
 | [QUALITY-ENGG-GUARDRAILS.md](QUALITY-ENGG-GUARDRAILS.md) | Binding AI, security, and testing rules |
-| [quality-feedback.md](quality-feedback.md) | Code review changelog + dev vs prod recommendations |
 | [CLaimLens/README.md](CLaimLens/README.md) | NLP pipeline API reference |
 | [QualityMind-RAG/README.md](QualityMind-RAG/README.md) | RAG, Text-to-SQL, LangGraph agent reference |
 

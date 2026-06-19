@@ -17,14 +17,6 @@ def _handoff():
     )
 
 
-def test_part_number_denylist_excludes_non_parts():
-    # VIN-/DTC- share the part-number shape but must not be treated as parts.
-    fields = extract_fields("VIN-12345 logged DTC-0420 on TCU-4821")
-    assert "TCU-4821" in fields.part_numbers
-    assert "VIN-12345" not in fields.part_numbers
-    assert "DTC-0420" not in fields.part_numbers
-
-
 def test_longest_needle_wins_over_alias():
     # "gateway" (specific) should win over the shorter alias "gw".
     fields = extract_fields("gateway gw module fault")

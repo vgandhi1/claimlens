@@ -72,21 +72,21 @@ def _payload_for(endpoint: str, handoff: RcaHandoff) -> Optional[dict[str, Any]]
     """
     if endpoint == "/quality/five-why":
         # Full cross-project handoff contract (GUARDRAILS § Handoff contract):
-        # part_number drives PFMEA / NCR / SPC filtering on the QualityMind side,
-        # anomaly_label keeps taxonomy traceability, claim_count gives severity.
+        # component (descriptive name from extraction/trends) drives PFMEA / NCR
+        # retrieval on the QualityMind side; anomaly_label keeps taxonomy traceability.
         payload: dict[str, Any] = {
             "problem_statement": handoff.problem_statement,
             "anomaly_label": handoff.anomaly_label,
             "claim_count": handoff.claim_count,
         }
-        if handoff.part_number:
-            payload["part_number"] = handoff.part_number
+        if handoff.component:
+            payload["component"] = handoff.component
         return payload
     if endpoint == "/quality/draft-8d":
-        # QualityMind DraftBody: problem_statement (+ optional part_number).
+        # QualityMind DraftBody: problem_statement (+ optional component).
         payload = {"problem_statement": handoff.problem_statement}
-        if handoff.part_number:
-            payload["part_number"] = handoff.part_number
+        if handoff.component:
+            payload["component"] = handoff.component
         return payload
     return None
 
